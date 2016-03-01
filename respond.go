@@ -6,6 +6,22 @@ import (
 	"sync"
 )
 
+// headerWriter is a wrapper around http.ResponseWriter that
+// writes the header on the first write call
+type headerWriter struct {
+	http.ResponseWriter
+	headerWritten bool
+	status        int
+}
+
+func (w *headerWriter) Write(data []byte) (int, error) {
+	if !w.headerWritten {
+		w.WriteHeader(w.status)
+		w.headerWritten = true
+	}
+	return w.ResponseWriter.Write(data)
+}
+
 func with(w http.ResponseWriter, r *http.Request, status int, data interface{}, opts *Options, multiple bool) {
 	hasOpts := opts != nil
 
@@ -25,8 +41,12 @@ func with(w http.ResponseWriter, r *http.Request, status int, data interface{}, 
 
 	// write response
 	w.Header().Set("Content-Type", encoder.ContentType(w, r))
-	w.WriteHeader(status)
-	if err := encoder.Encode(w, r, data); err != nil {
+	//w.WriteHeader(status)
+	wrappedWriter := &headerWriter{
+		ResponseWriter: w,
+		status:         status,
+	}
+	if err := encoder.Encode(wrappedWriter, r, data); err != nil {
 		if hasOpts && opts.OnErr != nil {
 			opts.OnErr(err)
 		} else {

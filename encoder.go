@@ -2,6 +2,7 @@ package respond
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 )
 
@@ -10,7 +11,7 @@ import (
 type Encoder interface {
 	// Encode writes a serialization of v to w, optionally using additional
 	// information from the http.Request to do so.
-	Encode(w http.ResponseWriter, r *http.Request, v interface{}) error
+	Encode(w io.Writer, r *http.Request, v interface{}) error
 	// ContentType gets a string that will become the Content-Type header
 	// when responding through w to the specified http.Request.
 	// Most of the time the argument will be ignored, but occasionally
@@ -26,7 +27,7 @@ var _ Encoder = (*jsonEncoder)(nil)
 // JSON is an Encoder for JSON.
 var JSON Encoder = (*jsonEncoder)(nil)
 
-func (*jsonEncoder) Encode(w http.ResponseWriter, r *http.Request, v interface{}) error {
+func (*jsonEncoder) Encode(w io.Writer, r *http.Request, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
